@@ -23,6 +23,8 @@ app.use(
     //,origin: "http://localhost:5173"
     origin: "https://nworkstreamfrontend.vercel.app",
     credentials: true, // allow frontend to send cookies
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
