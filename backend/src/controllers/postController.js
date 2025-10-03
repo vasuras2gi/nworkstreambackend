@@ -2,10 +2,28 @@ import Post from "../models/Post.js";
 
 export const getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
-      .populate("user", "fullName email profilePic")
-      .sort({ createdAt: -1 });
+    // 1. Get query parameters
+    const limit = parseInt(req.query.limit) || 10; // Default to 10 posts
+    const cursor = req.query.cursor; // The _id of the last post received
+    
+    // 2. Build the query filter
+    const filter = {};
+    if (cursor) {
+      // Fetch posts older than the cursor post
+      filter._id = { $lt: cursor }; 
+    }
 
+    // 3. Execute the query with limit and sort
+    const posts = await Post.find(filter)
+      .populate("user", "fullName email profilePic")
+      .sort({ createdAt: -1 }) // Sort by newest first
+      .limit(limit);
+
+    // 4. Determine the next cursor
+    const hasMore = posts.length === limit;
+    const nextCursor = hasMore ? posts[posts.length - 1]._id : null;
+    
+    // 5. Format posts (rest of your logic remains)
     const formattedPosts = posts.map((post) => {
       let base64Image = null;
       if (post.media?.data) {
@@ -18,9 +36,14 @@ export const getAllPosts = async (req, res) => {
       };
     });
 
-    res.status(200).json(formattedPosts);
+    // 6. Send the posts and the next cursor back
+    res.status(200).json({
+        posts: formattedPosts, 
+        nextCursor: nextCursor, 
+        hasMore: hasMore // Indicate if more posts are available
+    });
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    console.error("Error fetching paginated posts:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
