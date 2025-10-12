@@ -3,7 +3,7 @@ import Post from "../models/Post.js";
 export const getAllPosts = async (req, res) => {
   try {
     // 1. Get query parameters
-    const limit = parseInt(req.query.limit) || 5; // Default to 10 posts
+    const limit = parseInt(req.query.limit) || 4; // Default to 10 posts
     const cursor = req.query.cursor; // The _id of the last post received
     
     // 2. Build the query filter
