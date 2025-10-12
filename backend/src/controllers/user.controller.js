@@ -2,21 +2,63 @@ import User from "../models/User.js";
 import FriendRequest from "../models/FriendRequest.js";
 import Post from "../models/Post.js";
 
+// export async function getRecommendedUsers(req, res) {
+//   try {
+//     const currentUserId = req.user.id;
+//     const currentUser = req.user;
+
+//     const recommendedUsers = await User.find({
+//       $and: [
+//         { _id: { $ne: currentUserId } }, //exclude current user
+//         { _id: { $nin: currentUser.friends } }, // exclude current user's friends
+//         { isOnboarded: true },
+//       ],
+//     });
+//     res.status(200).json(recommendedUsers);
+//   } catch (error) {
+//     console.error("Error in getRecommendedUsers controller", error.message);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// }
+
 export async function getRecommendedUsers(req, res) {
   try {
     const currentUserId = req.user.id;
     const currentUser = req.user;
 
-    const recommendedUsers = await User.find({
+    // Get filters from query params (optional)
+    const { city, learningLanguage } = req.query;
+
+    // Base filter: exclude self, exclude friends, only onboarded users
+    const filter = {
       $and: [
-        { _id: { $ne: currentUserId } }, //exclude current user
-        { _id: { $nin: currentUser.friends } }, // exclude current user's friends
+        { _id: { $ne: currentUserId } },
+        { _id: { $nin: currentUser.friends } },
         { isOnboarded: true },
       ],
-    });
+    };
+
+    // Apply city filter (case-insensitive)
+    if (city && city.trim()) {
+      filter.$and.push({
+        city: { $regex: new RegExp(city.trim(), "i") },
+      });
+    }
+
+    // Apply learningLanguage filter (case-insensitive)
+    if (learningLanguage && learningLanguage.trim()) {
+      filter.$and.push({
+        learningLanguage: { $regex: new RegExp(learningLanguage.trim(), "i") },
+      });
+    }
+
+    // Fetch users from DB
+    const recommendedUsers = await User.find(filter)
+      .select("fullName profilePic city country nativeLanguage learningLanguage");
+
     res.status(200).json(recommendedUsers);
   } catch (error) {
-    console.error("Error in getRecommendedUsers controller", error.message);
+    console.error("Error in getRecommendedUsers controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
