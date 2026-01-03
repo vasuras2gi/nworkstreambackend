@@ -15,7 +15,7 @@ import { connectDB } from "./lib/db.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT;
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 const __dirname = path.resolve();
 

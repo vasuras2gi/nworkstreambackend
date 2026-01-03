@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 export async function signup(req, res) {
   const { email, password, fullName } = req.body;
-
+      
   try {
     if (!email || !password || !fullName) {
       return res.status(400).json({ message: "All fields are required" });
@@ -52,8 +52,8 @@ export async function signup(req, res) {
 
     res.cookie("jwt", token, {
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true, // prevent XSS attacks,
-      sameSite: "None", // prevent CSRF attacks
+      httpOnly: true,
+      sameSite: "None",
       secure: true,
     });
 
