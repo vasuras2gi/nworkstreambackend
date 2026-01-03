@@ -55,6 +55,8 @@ export async function signup(req, res) {
       httpOnly: true,
       sameSite: "None",
       secure: true,
+      withCredentials: true,
+      credentials: true,
     });
 
     res.status(201).json({ success: true, user: newUser });
