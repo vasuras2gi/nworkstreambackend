@@ -21,6 +21,35 @@ import Post from "../models/Post.js";
 //   }
 // }
 
+export const updateProfile = async (req, res) => {
+  try {
+    const { bio, learningLanguage, profilePic } = req.body;
+    const userId = req.user.id; // Comes from your protectRoute middleware
+
+    // Find the user and update their fields
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          bio: bio,
+          learningLanguage: learningLanguage,
+          profilePic: profilePic,
+        },
+      },
+      { new: true } // This returns the updated document rather than the old one
+    ).select("-password"); // Don't send the password hash back to the frontend
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Server error while updating profile" });
+  }
+};
+
 export async function getRecommendedUsers(req, res) {
   try {
     const currentUserId = req.user.id;
