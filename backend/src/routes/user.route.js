@@ -28,7 +28,6 @@ router.get("/friend-requests", getFriendRequests);
 router.get("/outgoing-friend-requests", getOutgoingFriendReqs);
 router.get("/search",protectRoute, getsearchUser);
 router.get("/:userId", getUserById);
-router.put("/update", protectRoute, updateProfile);
 
 
 export default router;
