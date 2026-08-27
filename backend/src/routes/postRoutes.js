@@ -12,7 +12,7 @@ import {
 const router = express.Router();
 
 // Route to the new createPost controller
-router.post("/create", protectRoute, upload.single("file"), createPost);
+router.post("/create-post", protectRoute, upload.single("file"), createPost);
 
 router.get("/", protectRoute, getAllPosts);
 router.get("/user/:userId", protectRoute, getPostsByUserId);
