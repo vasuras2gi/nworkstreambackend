@@ -1,47 +1,66 @@
 import Post from "../models/Post.js";
+import cloudinary from "../lib/cloudinary.js"; // Import your new config
 
+// 1. NEW: The Create Post Controller
+export const createPost = async (req, res) => {
+  try {
+    const { text } = req.body;
+    const file = req.file; // This comes from multer memory storage
+
+    if (!text && !file) {
+      return res.status(400).json({ message: "Post must have text or file" });
+    }
+
+    let imageUrl = null;
+
+    if (file) {
+      // Convert multer buffer to a base64 DataURI for Cloudinary upload
+      const b64 = Buffer.from(file.buffer).toString("base64");
+      let dataURI = "data:" + file.mimetype + ";base64," + b64;
+      
+      // Upload directly to Cloudinary
+      const uploadResponse = await cloudinary.uploader.upload(dataURI, {
+        folder: "nwork_posts", // Keeps your cloudinary dashboard organized
+      });
+
+      // Get the secure CDN URL
+      imageUrl = uploadResponse.secure_url;
+    }
+
+    const newPost = new Post({
+      text,
+      media: imageUrl, // 🔥 Save the URL instead of the buffer
+      user: req.user.id,
+    });
+
+    await newPost.save();
+    res.status(201).json({ message: "Post created successfully", post: newPost });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 2. UPDATED: Clean, fast read controllers (No base64 mapping required!)
 export const getAllPosts = async (req, res) => {
   try {
-    // 1. Get query parameters
-    const limit = parseInt(req.query.limit) || 4; // Default to 10 posts
-    const cursor = req.query.cursor; // The _id of the last post received
+    const limit = parseInt(req.query.limit) || 4; 
+    const cursor = req.query.cursor; 
     
-    // 2. Build the query filter
     const filter = {};
     if (cursor) {
-      // Fetch posts older than the cursor post
       filter._id = { $lt: cursor }; 
     }
 
-    // 3. Execute the query with limit and sort
     const posts = await Post.find(filter)
       .populate("user", "fullName email profilePic")
-      .sort({ createdAt: -1 }) // Sort by newest first
+      .sort({ createdAt: -1 })
       .limit(limit);
 
-    // 4. Determine the next cursor
     const hasMore = posts.length === limit;
     const nextCursor = hasMore ? posts[posts.length - 1]._id : null;
     
-    // 5. Format posts (rest of your logic remains)
-    const formattedPosts = posts.map((post) => {
-      let base64Image = null;
-      if (post.media?.data) {
-        base64Image = `data:${post.media.contentType};base64,${post.media.data.toString("base64")}`;
-      }
-
-      return {
-        ...post._doc,
-        media: base64Image,
-      };
-    });
-
-    // 6. Send the posts and the next cursor back
-    res.status(200).json({
-        posts: formattedPosts, 
-        nextCursor: nextCursor, 
-        hasMore: hasMore // Indicate if more posts are available
-    });
+    res.status(200).json({ posts, nextCursor, hasMore });
   } catch (error) {
     console.error("Error fetching paginated posts:", error);
     res.status(500).json({ message: "Server error" });
@@ -55,26 +74,13 @@ export const getPostsByUserId = async (req, res) => {
       .populate("user", "fullName email profilePic")
       .sort({ createdAt: -1 });
 
-    const formattedPosts = posts.map((post) => {
-      let base64Image = null;
-      if (post.media?.data) {
-        base64Image = `data:${post.media.contentType};base64,${post.media.data.toString("base64")}`;
-      }
-
-      return {
-        ...post._doc,
-        media: base64Image,
-      };
-    });
-
-    res.json(formattedPosts);
+    res.json(posts);
   } catch (error) {
     console.error("Error in getPostsByUserId:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get single post by postId
 export const getPostById = async (req, res) => {
   try {
     const { postId } = req.params;
@@ -85,15 +91,7 @@ export const getPostById = async (req, res) => {
 
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    let base64Image = null;
-    if (post.media?.data) {
-      base64Image = `data:${post.media.contentType};base64,${post.media.data.toString("base64")}`;
-    }
-
-    res.json({
-      ...post._doc,
-      media: base64Image,
-    });
+    res.json(post);
   } catch (error) {
     console.error("Error in getPostById:", error);
     res.status(500).json({ message: "Server error" });

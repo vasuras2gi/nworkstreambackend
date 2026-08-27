@@ -2,52 +2,26 @@ import express from "express";
 import Post from "../models/Post.js";
 import upload from "../middleware/upload.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
-import { getAllPosts, getPostById, getPostsByUserId } from "../controllers/postController.js";
+import { 
+  createPost, 
+  getAllPosts, 
+  getPostById, 
+  getPostsByUserId 
+} from "../controllers/postController.js";
 
 const router = express.Router();
 
-// Create Post
-router.post("/create", upload.single("file"),protectRoute, async (req, res) => {
-  try {
-    const { text } = req.body;
-    const file = req.file;
+// Route to the new createPost controller
+router.post("/create", protectRoute, upload.single("file"), createPost);
 
-
-    if (!text && !file) {
-      return res.status(400).json({ message: "Post must have text or file" });
-    }
-
-    const newPost = new Post({
-      text,
-      media: file
-        ? {
-            data: file.buffer,
-            contentType: file.mimetype,
-          }
-        : null,
-      user: req.user.id,
-    });
-
-    await newPost.save();
-    res.status(201).json({ message: "Post created successfully", post: newPost });
-  } catch (error) {
-    console.error("Error creating post:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.get("/",protectRoute, getAllPosts);
-
+router.get("/", protectRoute, getAllPosts);
 router.get("/user/:userId", protectRoute, getPostsByUserId);
-
-// get a single post by its postId
 router.get("/:postId", protectRoute, getPostById);
 
-// ✅ Toggle Like/Unlike
 export const toggleLike = async (req, res) => {
   try {
     const { postId } = req.params;
-    const userId = req.user.id; //have auth middleware
+    const userId = req.user.id; 
 
     const post = await Post.findById(postId);
 
@@ -56,10 +30,8 @@ export const toggleLike = async (req, res) => {
     }
 
     if (post.likes.includes(userId)) {
-      // If already liked → Unlike
       post.likes = post.likes.filter((id) => id.toString() !== userId);
     } else {
-      // If not liked → Like
       post.likes.push(userId);
     }
 
@@ -73,6 +45,5 @@ export const toggleLike = async (req, res) => {
 };
 
 router.put("/:postId/like", protectRoute, toggleLike);
-
 
 export default router;
